@@ -1,0 +1,18 @@
+language: python
+python:
+  - "3.6"
+  - "3.7"
+branches:
+  only:
+  - master
+  - /^\d+\.\d+\.\d+$/  # Use sem var
+install:
+  # Print out the version of Python and pip
+  - python --version
+  - pip --version
+  # Install dependencies
+  - pip install poetry
+  - poetry install
+script:
+  # Unit tests
+  - poetry run pytest
