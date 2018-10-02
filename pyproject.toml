@@ -12,3 +12,6 @@ boto3 = "^1.9"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.8"
+
+[tool.poetry.scripts]
+vpc-creator = "vpc_creator:main"
