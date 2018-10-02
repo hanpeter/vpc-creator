@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "vpc-creator"
+version = "0.0.1"
+description = "Application to automate the creation of a VPC in AWS"
+authors = ["Peter Han <git@peterhan.me>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+click = "^7.0"
+boto3 = "^1.9"
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.8"
