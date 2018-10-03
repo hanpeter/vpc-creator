@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import
+import getpass
 import click
 from vpc_creator.creator import Creator
 
@@ -12,6 +13,12 @@ CONTEXT_SETTINGS = {
 
 
 @click.command(context_settings=CONTEXT_SETTINGS)
-def main():
-    creator = Creator()
-    creator.run()
+@click.option('--name', '-n', required=True, type=str)
+@click.option('--cidr', '-c', type=str, default='10.0.0.0/16', show_default=True)
+@click.option('--creator', type=str, default=getpass.getuser(), show_default=True)
+@click.option('--subnet', '-s', required=True, multiple=True, type=str, nargs=2)
+def main(name, cidr, creator, subnet):
+    subnets = {s[0]: s[1] for s in subnet}
+
+    crt = Creator()
+    crt.run(name=name, cidr=cidr, subnets=subnets, creator=creator)
