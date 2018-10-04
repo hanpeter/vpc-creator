@@ -9,6 +9,7 @@ class Creator(object):
     def __init__(self):
         super().__init__()
         self._ec2 = boto3.client('ec2')
+        self._cloudwatch = boto3.client('cloudwatch')
 
     def _create_vpc(self, name, cidr, creator):
         vpc = self._ec2.create_vpc(
@@ -61,7 +62,7 @@ class Creator(object):
         )
         return subnet
 
-    def _create_nat_gateway(self, subnet):
+    def _create_nat_gateway(self, subnet, sns):
         eip = self._ec2.allocate_address(
             Domain='vpc',
         )
@@ -78,7 +79,29 @@ class Creator(object):
         self._ec2.get_waiter('nat_gateway_available').wait(
             NatGatewayIds=[nat.get('NatGatewayId')],
         )
+        if sns:
+            self._create_alarm(nat=nat, az=subnet.get('AvailabilityZone'), metric='BytesOutToDestination', sns=sns)
+            self._create_alarm(nat=nat, az=subnet.get('AvailabilityZone'), metric='BytesOutToSource', sns=sns)
         return nat
+
+    def _create_alarm(self, nat, az, metric, sns):
+        self._cloudwatch.put_metric_alarm(
+            AlarmName="awsnatgateway-{az}-{metric}".format(
+                az=az, metric=metric,
+            ),
+            AlarmActions=[sns],
+            MetricName=metric,
+            Namespace='AWS/NATGateway',
+            Statistic='Sum',
+            Dimensions=[{
+                'Name': 'NatGatewayId',
+                'Value': nat.get('NatGatewayId')
+            }],
+            Period=300,
+            EvaluationPeriods=3,
+            Threshold=(5 << 30),  # 5 GB
+            ComparisonOperator='GreaterThanOrEqualToThreshold',
+        )
 
     def _create_route_table(self, vpc, subnet, nat, s3_endpoint):
         route_table = self._ec2.create_route_table(
@@ -105,12 +128,12 @@ class Creator(object):
         )
         return route_table
 
-    def run(self, name, cidr, subnets, creator):
+    def run(self, name, cidr, subnets, creator, sns):
         vpc = self._create_vpc(name=name, cidr=cidr, creator=creator)
         self._create_internet_gateway(vpc=vpc, name=name)
         s3_endpoint = self._create_s3_endpoint(vpc=vpc)
 
         for az, subnet_cidr in subnets.items():
             subnet = self._create_subnet(vpc=vpc, az=az, cidr=subnet_cidr)
-            nat = self._create_nat_gateway(subnet=subnet)
+            nat = self._create_nat_gateway(subnet=subnet, sns=sns)
             self._create_route_table(vpc=vpc, subnet=subnet, nat=nat, s3_endpoint=s3_endpoint)
