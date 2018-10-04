@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vpc-creator"
-version = "0.0.1"
+version = "0.1.0"
 description = "Application to automate the creation of a VPC in AWS"
 authors = ["Peter Han <git@peterhan.me>"]
 license = "MIT"
